@@ -217,7 +217,7 @@ st.markdown("""
 # --- Header ---
 st.markdown("""
 <div class="header-container">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/6/63/Applegreen_Logo.png" class="header-logo" alt="Applegreen Logo">
+    <img src="https://applegreenstores.com/wp-content/uploads/2018/06/about-hero.jpg" class="header-logo" alt="Applegreen Logo">
     <div class="profile-section">
         <span class="welcome-text">Welcome, Valentin</span>
         <div class="profile-avatar">V</div>
@@ -289,7 +289,7 @@ if st.session_state["current_page"] == "Dashboard":
 
     # --- Hero Image ---
     st.markdown(
-        '<img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Applegreen_Service_Station_-_geograph.org.uk_-_1436421.jpg" class="station-hero" alt="Applegreen Storefront">',
+        '<img src="https://applegreenstores.com/wp-content/uploads/2019/04/fuelgood-home-tile.jpg" class="station-hero" alt="Applegreen Storefront">',
         unsafe_allow_html=True
     )
 
