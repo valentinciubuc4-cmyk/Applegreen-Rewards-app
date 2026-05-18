@@ -22,7 +22,7 @@ def get_fuel_logs(db_path="tracker.db"):
 
 st.set_page_config(page_title="Applegreen Go", page_icon="🍏", layout="centered")
 
-# --- Premium Mobile Navbar & App CSS ---
+# --- CSS for mobile look and nav ---
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -170,74 +170,38 @@ st.markdown("""
         .stButton>button {
             border-radius: 20px !important;
         }
-        /* --- Premium Mobile Navbar --- */
-        .stBottomNavWrapper {
+        .bottom-nav {
             position: fixed;
             left: 0;
             right: 0;
             bottom: 0;
-            height: 74px;
+            height: 68px;
             background: #fff;
-            border-top: 1.5px solid #e0e0e0;
-            box-shadow: 0 -4px 16px rgba(0,0,0,0.07);
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
             display: flex;
             justify-content: space-around;
-            align-items: stretch;
+            align-items: center;
             z-index: 100;
         }
-        .stBottomNavBtn {
-            flex: 1 1 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: none;
+        .nav-btn {
             background: none;
+            border: none;
             outline: none;
             padding: 0;
             margin: 0;
             cursor: pointer;
-            transition: background 0.18s, transform 0.12s;
-            min-width: 0;
-            min-height: 0;
-        }
-        .stBottomNavBtn .nav-icon {
+            width: 60px;
+            height: 60px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            line-height: 1;
         }
-        .stBottomNavBtn .nav-label {
-            font-size: 13px;
-            margin-top: 2px;
-            font-weight: 600;
-            color: #444;
-            letter-spacing: 0.01em;
+        .nav-btn.selected {
+            color: #007A33;
         }
-        .stBottomNavBtn.selected .nav-label,
-        .stBottomNavBtn.selected .nav-icon svg {
-            color: #007A33 !important;
-            fill: #007A33 !important;
-        }
-        .stBottomNavBtn.selected {
-            background: #F2F8F4;
-        }
-        .stBottomNavBtn:hover:not(.selected) {
-            background: #F2F3F5;
-            transform: scale(1.07);
-        }
-        .stBottomNavBtn:active {
-            background: #E6F4EA;
-            transform: scale(0.97);
-        }
-        .stBottomNavBtn:focus {
-            outline: none !important;
-            box-shadow: none !important;
-        }
-        /* Remove default Streamlit button styles in nav */
-        .stBottomNavBtn button {
-            all: unset !important;
+        .nav-btn svg {
+            margin-bottom: 4px;
         }
         .station-hero {
             width: 100%;
@@ -246,10 +210,6 @@ st.markdown("""
             margin: 18px auto 24px auto;
             box-shadow: 0 4px 16px rgba(0,0,0,0.06);
             display: block;
-        }
-        /* Padding for main content so it doesn't hide behind nav */
-        .main-content-pad {
-            padding-bottom: 90px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -274,7 +234,6 @@ nav_map = {
     "Calculator": "Fuel Calculator"
 }
 nav_order = ["Home", "Map", "Rewards", "Calculator"]
-nav_labels = ["Home", "Map", "Rewards", "Calculator"]
 
 # --- Session State for Navigation ---
 if "current_page" not in st.session_state:
@@ -287,8 +246,40 @@ if selected_page != st.session_state["current_page"]:
     st.session_state["current_page"] = selected_page
     st.rerun()
 
-# --- Main Content Padding (so content isn't hidden by nav) ---
-st.markdown('<div class="main-content-pad">', unsafe_allow_html=True)
+# --- Bottom Navigation Bar (fully functional) ---
+nav_cols = st.columns(4)
+nav_icons = [
+    # Home
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 12L14 4l10 8v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V12z" stroke="#007A33" stroke-width="2" fill="none"/>
+        <rect x="10" y="16" width="8" height="6" rx="2" fill="#8DC63F"/>
+    </svg>""",
+    # Map
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/>
+        <path d="M14 8v6l4 4" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>""",
+    # Rewards
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/>
+        <path d="M9 17l5-6 5 6" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>""",
+    # Calculator
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="11" r="5" stroke="#007A33" stroke-width="2"/>
+        <rect x="7" y="18" width="14" height="6" rx="3" fill="#8DC63F"/>
+    </svg>"""
+]
+for i, (col, nav, icon) in enumerate(zip(nav_cols, nav_order, nav_icons)):
+    selected = (st.session_state["current_page"] == nav_map[nav])
+    btn_label = f"{icon}<div style='font-size:12px;'>{nav}</div>"
+    if col.button("", key=f"navbtn_{nav}", help=nav, use_container_width=True):
+        st.session_state["current_page"] = nav_map[nav]
+        st.rerun()
+    col.markdown(
+        f"<div class='nav-btn{' selected' if selected else ''}'>{btn_label}</div>",
+        unsafe_allow_html=True
+    )
 
 # --- Main Page Routing ---
 df, db_status = get_fuel_logs()
@@ -298,7 +289,7 @@ if st.session_state["current_page"] == "Dashboard":
 
     # --- Hero Image ---
     st.markdown(
-        '<img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Applegreen_Service_Station_-_geograph.org.uk_-_1436421.jpg" class="station-hero" alt="Applegreen Storefront">',
+        '<img src="https://applegreenstores.com/wp-content/uploads/2019/04/fuelgood-home-tile.jpg" class="station-hero" alt="Applegreen Storefront">',
         unsafe_allow_html=True
     )
 
@@ -419,14 +410,17 @@ elif st.session_state["current_page"] == "Station Finder":
 
     # Show contextual station image
     st.markdown(
-        '<img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Applegreen_Service_Station_-_geograph.org.uk_-_1436421.jpg" class="station-hero" alt="Applegreen Forecourt">',
+        '<img src="https://applegreenstores.com/wp-content/uploads/2018/06/about-hero.jpg" class="station-hero" alt="Applegreen Forecourt">',
         unsafe_allow_html=True
     )
 
-    # Live Map Integration (2026 st.iframe)
+    # Live Map Integration
     if show_map:
         map_url = f"https://maps.google.com/maps?q={city.strip().replace(' ', '%20')}+Applegreen&t=&z=13&ie=UTF8&iwloc=&output=embed"
-        st.iframe(map_url, height=360)
+        st.iframe(
+            f'<iframe width="100%" height="340" style="border-radius:18px;border:none;" src="{map_url}"></iframe>',
+            height=360
+        )
     else:
         st.info("Type an Irish city or town name above to see Applegreen locations on the map.")
 
@@ -441,56 +435,3 @@ elif st.session_state["current_page"] == "Fuel Calculator":
             st.success(f"{litres}L of {fuel_type} will cost €{cost:.2f}")
         else:
             st.error("Please enter a positive number of litres.")
-
-# --- Premium Bottom Navigation Bar (sticky, native look) ---
-st.markdown("""
-<div class="stBottomNavWrapper">
-""", unsafe_allow_html=True)
-
-nav_icons = [
-    # Home
-    """<span class="nav-icon"><svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 12L14 4l10 8v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V12z" stroke="#007A33" stroke-width="2" fill="none"/>
-        <rect x="10" y="16" width="8" height="6" rx="2" fill="#8DC63F"/>
-    </svg></span>""",
-    # Map
-    """<span class="nav-icon"><svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/>
-        <path d="M14 8v6l4 4" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg></span>""",
-    # Rewards
-    """<span class="nav-icon"><svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/>
-        <path d="M9 17l5-6 5 6" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg></span>""",
-    # Calculator
-    """<span class="nav-icon"><svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="14" cy="11" r="5" stroke="#007A33" stroke-width="2"/>
-        <rect x="7" y="18" width="14" height="6" rx="3" fill="#8DC63F"/>
-    </svg></span>"""
-]
-
-for i, (nav, icon, label) in enumerate(zip(nav_order, nav_icons, nav_labels)):
-    selected = (st.session_state["current_page"] == nav_map[nav])
-    btn_class = "stBottomNavBtn selected" if selected else "stBottomNavBtn"
-    # Use form to avoid Streamlit rerun issues with multiple buttons in HTML
-    with st.form(f"navbtn_form_{nav}", clear_on_submit=True):
-        submitted = st.form_submit_button(
-            "",
-            use_container_width=True
-        )
-        st.markdown(
-            f"""
-            <button class="{btn_class}" type="submit" tabindex="0">
-                {icon}
-                <span class="nav-label">{label}</span>
-            </button>
-            """,
-            unsafe_allow_html=True
-        )
-        if submitted:
-            st.session_state["current_page"] = nav_map[nav]
-            st.rerun()
-
-st.markdown("</div>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)  # Close .main-content-pad
