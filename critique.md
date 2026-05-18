@@ -1,21 +1,34 @@
-# Critique of app1.py
+# Applegreen Go – Prototype Critique (Refined)
 
-## Loyalty Dashboard
-- Displays a static loyalty card with hardcoded points, a progress bar, and a "View Rewards" button using HTML/CSS.
-- I would connect the points and progress to a backend service, make the card interactive, and ensure accessibility.
-- Hardcoded point values and lack of real user authentication make this unfit for production.
+## Strengths
 
-## Station Finder
-- Lets users input a city and returns a hardcoded station address if found, otherwise shows an error.
-- I would integrate a real-time station database or API, add location auto-complete, and handle errors gracefully.
-- Hardcoded station data and no input validation or error logging are unacceptable for a real deployment.
+- **Station Finder Overhaul:**  
+  The app now features a live, interactive map for station search, replacing all static city-to-address text dictionaries. Users can enter any Irish town or region and instantly view real Applegreen locations via a Google Maps iframe, greatly enhancing realism and utility.
 
-## Fuel Calculator
-- Calculates fuel cost based on user input and hardcoded prices, displaying the result in the UI.
-- I would fetch live fuel prices from an external service, add input validation, and provide a receipt or transaction log.
-- Using hardcoded prices and not validating user input is not suitable for a production environment.
+- **Loyalty & Interface Architecture:**  
+  All loyalty points, rewards progress, and "Next Stop" features are dynamically computed from the SQLite database. The interface leverages robust session state logic for both sidebar and bottom navigation, ensuring seamless, conflict-free page routing and a true multi-page experience.
 
-## Navigation Bar
-- Renders a fixed bottom navigation bar with static SVG icons and labels for navigation, but no real routing logic.
-- I would implement true page routing, use accessible SVGs or icon libraries, and highlight the active page.
-- Static navigation with no state or routing logic is not shippable for a scalable, maintainable app.
+- **Visual Authenticity:**  
+  The dashboard and station views use real-world Applegreen forecourt imagery, eliminating placeholder text and static mockups. This delivers a high-fidelity, customer-facing look and feel.
+
+- **Modern Compliance:**  
+  All Streamlit API calls use up-to-date parameters (e.g., `use_container_width=True` for dataframes, `st.rerun()` for navigation), ensuring compatibility with Python 3.14 and current Streamlit releases.
+
+## Limitations
+
+- **Local Database Scope:**  
+  The app remains tied to a local SQLite file, which restricts it to single-user or demo scenarios. For production, a cloud-hosted, multi-user database would be required.
+
+- **No User Authentication:**  
+  There is no login or user account system; all data is global and not user-specific. Adding authentication and user data partitioning is a necessary next step for real deployments.
+
+- **CSS Injection Reliance:**  
+  Custom navigation and button styling depend on injected CSS, which, while effective, may be brittle if Streamlit's DOM structure changes in future releases.
+
+- **No Native Mobile App:**  
+  The interface is mobile-friendly in the browser but is not a true native mobile application.
+
+---
+
+**Summary:**  
+This prototype systematically minimizes static mockups, replacing them with live, data-driven and interactive components. It demonstrates a strong foundation for a branded, dynamic dashboard. For real-world scaling, future work should focus on cloud database integration, user authentication, and more robust UI componentization.
