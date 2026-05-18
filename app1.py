@@ -217,7 +217,7 @@ st.markdown("""
 # --- Header ---
 st.markdown("""
 <div class="header-container">
-    <img src="https://applegreenstores.com/wp-content/uploads/2018/06/about-hero.jpg" class="header-logo" alt="Applegreen Logo">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/63/Applegreen_Logo.png" class="header-logo" alt="Applegreen Logo">
     <div class="profile-section">
         <span class="welcome-text">Welcome, Valentin</span>
         <div class="profile-avatar">V</div>
@@ -410,7 +410,7 @@ elif st.session_state["current_page"] == "Station Finder":
 
     # Show contextual station image
     st.markdown(
-        '<img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Applegreen_Service_Station_-_geograph.org.uk_-_1436421.jpg" class="station-hero" alt="Applegreen Forecourt">',
+        '<img src="https://applegreenstores.com/wp-content/uploads/2018/06/about-hero.jpg" class="station-hero" alt="Applegreen Forecourt">',
         unsafe_allow_html=True
     )
 
