@@ -435,3 +435,27 @@ elif st.session_state["current_page"] == "Fuel Calculator":
             st.success(f"{litres}L of {fuel_type} will cost €{cost:.2f}")
         else:
             st.error("Please enter a positive number of litres.")
+
+# --- Bottom Navigation Bar (mobile footer) ---
+nav_icons = [
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 12L14 4l10 8v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V12z" stroke="#007A33" stroke-width="2" fill="none"/><rect x="10" y="16" width="8" height="6" rx="2" fill="#8DC63F"/></svg>""",
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/><path d="M14 8v6l4 4" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>""",
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/><path d="M9 17l5-6 5 6" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>""",
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="11" r="5" stroke="#007A33" stroke-width="2"/><rect x="7" y="18" width="14" height="6" rx="3" fill="#8DC63F"/></svg>"""
+]
+
+current_page = st.session_state["current_page"]
+
+nav_html = '<div class="bottom-nav">'
+for nav, icon in zip(nav_order, nav_icons):
+    target_page = nav_map[nav]
+    selected = current_page == target_page
+    active_class = " selected" if selected else ""
+    nav_html += (
+        f"<a href='?page={target_page}' class='nav-btn{active_class}'>"
+        f"{icon}<div style='font-size:11px; margin-top:4px; line-height:1.1;'>{nav}</div>"
+        "</a>"
+    )
+nav_html += '</div>'
+
+st.markdown(f"<div class='bottom-nav-wrapper'>{nav_html}</div>", unsafe_allow_html=True)
