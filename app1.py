@@ -1,32 +1,32 @@
 import streamlit as st
+import sqlite3
+import pandas as pd
+import os
 
-# --- Page Configuration ---
-st.set_page_config(page_title="Applegreen Rewards", page_icon="🍏")
+# --- Data Connection ---
+def get_fuel_logs(db_path="tracker.db"):
+    if not os.path.exists(db_path):
+        return None, "missing"
+    try:
+        conn = sqlite3.connect(db_path)
+        df = pd.read_sql_query(
+            "SELECT date, liters, price_per_liter, total_cost, station, weather_info FROM fuel_logs ORDER BY date DESC",
+            conn
+        )
+        conn.close()
+        if df.empty:
+            return None, "empty"
+        return df, "ok"
+    except Exception:
+        return None, "error"
 
-# --- Custom CSS for styling ---
+st.set_page_config(page_title="Applegreen Go", page_icon="🍏", layout="centered")
+
+# --- CSS for mobile look and nav ---
 st.markdown("""
     <style>
-        body, .stButton>button, .nav-item, .welcome-text, .profile-avatar, input, .header-container, .profile-section {
-            font-family: 'Inter', 'Roboto', sans-serif !important;
-        }
-        .stButton>button {
-            border-radius: 20px !important;
-        }
-        button, [type="button"] {
-            border-radius: 20px !important;
-            font-family: 'Inter', 'Roboto', sans-serif !important;
-        }
-        .nav-item {
-            font-family: 'Inter', 'Roboto', sans-serif !important;
-        }
-        input[type="text"] {
-            font-family: 'Inter', 'Roboto', sans-serif !important;
-            border-radius: 20px !important;
-        }
-        .header-logo {
-            font-family: 'Inter', 'Roboto', sans-serif !important;
-        }
-        .profile-avatar {
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        html, body, [class*="css"] {
             font-family: 'Inter', 'Roboto', sans-serif !important;
         }
         .header-container {
@@ -34,11 +34,11 @@ st.markdown("""
             align-items: center;
             justify-content: space-between;
             background: #fff;
-            padding: 16px 0 8px 0;
-            margin-bottom: 24px;
+            padding: 18px 0 10px 0;
+            margin-bottom: 18px;
         }
         .header-logo {
-            height: 48px;
+            height: 44px;
         }
         .profile-section {
             display: flex;
@@ -46,22 +46,129 @@ st.markdown("""
             gap: 12px;
         }
         .profile-avatar {
-            width: 40px;
-            height: 40px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             background: #e0e0e0;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
+            font-weight: 800;
             color: #007A33;
-            font-size: 20px;
+            font-size: 22px;
+            border: 2px solid #8DC63F;
         }
         .welcome-text {
             font-family: 'Inter', 'Roboto', sans-serif;
             color: #222;
             font-size: 16px;
-            font-weight: 500;
+            font-weight: 600;
+        }
+        .rewards-card {
+            background: #fff;
+            border-radius: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            padding: 28px 0 18px 0;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .circular-progress {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(#007A33 calc(var(--progress)*1%), #8DC63F 0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .circular-progress-inner {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            left: 50%; top: 50%; transform: translate(-50%,-50%);
+            font-size: 32px;
+            font-weight: 800;
+            color: #007A33;
+            font-family: 'Inter', 'Roboto', sans-serif;
+        }
+        .rewards-label {
+            color: #007A33;
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 2px;
+            font-family: 'Inter', 'Roboto', sans-serif;
+        }
+        .rewards-progress {
+            color: #666;
+            font-size: 13px;
+            margin-top: 2px;
+            font-family: 'Inter', 'Roboto', sans-serif;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            max-width: 700px;
+            margin: 0 auto 28px auto;
+            text-align: center;
+        }
+        .icon-grid-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .icon-bg {
+            background: #F2F3F5;
+            border-radius: 16px;
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 8px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .next-stop-card {
+            background: linear-gradient(90deg, #007A33 0%, #8DC63F 100%);
+            border-radius: 20px;
+            color: #fff;
+            padding: 22px 24px 18px 24px;
+            margin: 32px 0 16px 0;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+            font-family: 'Inter', 'Roboto', sans-serif;
+        }
+        .next-stop-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .next-stop-station {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+        .next-stop-details {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        .next-stop-fuel {
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .next-stop-fuel span {
+            margin-right: 18px;
+        }
+        .stButton>button {
+            border-radius: 20px !important;
         }
         .bottom-nav {
             position: fixed;
@@ -76,18 +183,33 @@ st.markdown("""
             align-items: center;
             z-index: 100;
         }
-        .nav-item {
+        .nav-btn {
+            background: none;
+            border: none;
+            outline: none;
+            padding: 0;
+            margin: 0;
+            cursor: pointer;
+            width: 60px;
+            height: 60px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            color: #007A33;
-            font-size: 12px;
-            font-family: 'Inter', 'Roboto', sans-serif;
-            text-decoration: none;
-            font-weight: 500;
+            justify-content: center;
         }
-        .nav-item svg {
+        .nav-btn.selected {
+            color: #007A33;
+        }
+        .nav-btn svg {
             margin-bottom: 4px;
+        }
+        .station-hero {
+            width: 100%;
+            max-width: 700px;
+            border-radius: 24px;
+            margin: 18px auto 24px auto;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            display: block;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -103,134 +225,98 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- Session State for Points ---
-if 'points' not in st.session_state:
-    st.session_state.points = 1850
+# --- Pages and Navigation Mapping ---
+pages = ["Dashboard", "Fuel Tracker", "Station Finder", "Fuel Calculator"]
+nav_map = {
+    "Home": "Dashboard",
+    "Map": "Station Finder",
+    "Rewards": "Fuel Tracker",
+    "Calculator": "Fuel Calculator"
+}
+nav_order = ["Home", "Map", "Rewards", "Calculator"]
 
-# --- Sidebar Navigation ---
-page = st.sidebar.selectbox("Navigate", ["Dashboard", "Station Finder", "Fuel Calculator"])
+# --- Session State for Navigation ---
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "Dashboard"
 
-# --- Dashboard Page ---
-if page == "Dashboard":
-    st.title("Applegreen Dashboard")
-    st.markdown("### Loyalty Points")
-    st.markdown(f"<h1 style='color:#007A33;font-size:64px'>{st.session_state.points}</h1>", unsafe_allow_html=True)
-    if st.button("Add 100 Points"):
-        st.session_state.points += 100
+# --- Sidebar Navigation (sync with session state) ---
+current_idx = pages.index(st.session_state["current_page"])
+selected_page = st.sidebar.selectbox("Navigate", pages, index=current_idx)
+if selected_page != st.session_state["current_page"]:
+    st.session_state["current_page"] = selected_page
+    st.rerun()
+
+# --- Bottom Navigation Bar (fully functional) ---
+nav_cols = st.columns(4)
+nav_icons = [
+    # Home
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 12L14 4l10 8v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V12z" stroke="#007A33" stroke-width="2" fill="none"/>
+        <rect x="10" y="16" width="8" height="6" rx="2" fill="#8DC63F"/>
+    </svg>""",
+    # Map
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/>
+        <path d="M14 8v6l4 4" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>""",
+    # Rewards
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/>
+        <path d="M9 17l5-6 5 6" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>""",
+    # Calculator
+    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="11" r="5" stroke="#007A33" stroke-width="2"/>
+        <rect x="7" y="18" width="14" height="6" rx="3" fill="#8DC63F"/>
+    </svg>"""
+]
+for i, (col, nav, icon) in enumerate(zip(nav_cols, nav_order, nav_icons)):
+    selected = (st.session_state["current_page"] == nav_map[nav])
+    btn_label = f"{icon}<div style='font-size:12px;'>{nav}</div>"
+    if col.button("", key=f"navbtn_{nav}", help=nav, use_container_width=True):
+        st.session_state["current_page"] = nav_map[nav]
         st.rerun()
+    col.markdown(
+        f"<div class='nav-btn{' selected' if selected else ''}'>{btn_label}</div>",
+        unsafe_allow_html=True
+    )
 
-    # --- Loyalty Card with Gradient ---
-    st.markdown("""
-        <div style="
-            background: linear-gradient(90deg, #007A33 0%, #8DC63F 100%);
-            border-radius: 24px;
-            padding: 32px 24px 24px 24px;
-            margin-bottom: 32px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            ">
-            <div style="color: white; font-size: 18px; font-weight: 500; margin-bottom: 8px; font-family: 'Inter', 'Roboto', sans-serif;">
-                Loyalty Points
+# --- Main Page Routing ---
+df, db_status = get_fuel_logs()
+
+if st.session_state["current_page"] == "Dashboard":
+    st.title("Applegreen Go")
+
+    # --- Hero Image ---
+    st.markdown(
+        '<img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Applegreen_Service_Station_-_geograph.org.uk_-_1436421.jpg" class="station-hero" alt="Applegreen Storefront">',
+        unsafe_allow_html=True
+    )
+
+    # --- Rewards Section ---
+    if db_status == "ok":
+        total_liters = df["liters"].sum()
+        points = int(total_liters * 10)
+        progress = min((points % 2500) / 2500 * 100, 100)
+    else:
+        points = 0
+        progress = 0
+
+    st.markdown(f"""
+        <div class="rewards-card">
+            <div class="rewards-label">My Rewards</div>
+            <div class="circular-progress" style="--progress:{progress};">
+                <div class="circular-progress-inner">{points}</div>
             </div>
-            <div style="color: white; font-size: 56px; font-weight: bold; margin-bottom: 8px; font-family: 'Inter', 'Roboto', sans-serif;">
-                1,850
-            </div>
-            <div style="width: 100%; max-width: 260px; margin-bottom: 12px;">
-                <div style="background: rgba(255,255,255,0.3); border-radius: 4px; height: 8px; width: 100%;">
-                    <div style="background: white; height: 8px; border-radius: 4px; width: 74%;"></div>
-                </div>
-                <div style="color: white; font-size: 12px; margin-top: 4px; text-align: right;">
-                    74% to next reward
-                </div>
-            </div>
-            <button style="
-                background: white;
-                color: #007A33;
-                border: none;
-                border-radius: 20px;
-                padding: 10px 32px;
-                font-size: 16px;
-                font-weight: bold;
-                margin-top: 8px;
-                cursor: pointer;
-                font-family: 'Inter', 'Roboto', sans-serif;
-            ">
-                View Rewards
-            </button>
+            <div class="rewards-progress">{int(progress)}% to next €5 reward</div>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- Search Bar ---
+    # --- Action Grid ---
     st.markdown("""
-        <div style="
-            width: 100%;
-            max-width: 400px;
-            margin: 24px auto 0 auto;
-        ">
-            <input 
-                type="text" 
-                placeholder="Search fuel, food, stores..." 
-                style="
-                    width: 100%;
-                    padding: 12px 18px;
-                    border-radius: 20px;
-                    border: none;
-                    background: #F2F3F5;
-                    font-size: 16px;
-                    font-family: 'Inter', 'Roboto', sans-serif;
-                    outline: none;
-                    box-sizing: border-box;
-                "
-            />
-        </div>
-    """, unsafe_allow_html=True)
-
-    # --- Hero Image with Overlay Button ---
-    st.markdown("""
-        <div style="position: relative; width: 100%; max-width: 700px; margin: 32px auto 0 auto; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.06);">
-            <img src="https://img.resized.co/checkout/eyJkYXRhIjoie1widXJsXCI6XCJodHRwczpcXFwvXFxcL21lZGlhLm1hZGlzb25wdWJsaWNhdGlvbnMuZXVcXFwvdXBsb2Fkc1xcXC8yMDE4XFxcLzA2XFxcLzA2MDk1ODU4XFxcL0FwcGxlZ3JlZW5OYXZhbi05MzIyLTEwMjR4NTQyLmpwZ1wiLFwid2lkdGhcIjo2MDAsXCJoZWlnaHRcIjo0MDAsXCJkZWZhdWx0XCI6XCJodHRwczpcXFwvXFxcL3d3dy5jaGVja291dC5pZVxcXC9pXFxcL25vaW1hZ2UucG5nXCIsXCJvcHRpb25zXCI6e1wib3V0cHV0XCI6XCJhdmlmXCJ9fSIsImhhc2giOiJkODZlZjc4ZWM3NWUxZmZiMjg5YTkzYTAwYWUwNDJlNWNlYzkwZWUwIn0=/applegreen-reports-strong-start-in-first-five-months-ahead-of-agm.jpg"
-                 alt="Applegreen Storefront"
-                 style="width: 100%; display: block; object-fit: cover; min-height: 180px; max-height: 260px;">
-            <a href="#Station-Finder" style="position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); text-decoration: none;">
-                <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    background: rgba(0,0,0,0.8);
-                    color: #fff;
-                    border-radius: 20px;
-                    padding: 12px 28px;
-                    font-size: 18px;
-                    font-weight: 600;
-                    font-family: 'Inter', 'Roboto', sans-serif;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-                    cursor: pointer;
-                    border: none;
-                ">
-                    <svg width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="11" cy="11" r="10" stroke="#8DC63F" stroke-width="2"/>
-                        <path d="M11 6v5l3 3" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Find a Station
-                </div>
-            </a>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # --- Icon Grid ---
-    st.markdown("""
-        <div style="
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 18px;
-            max-width: 700px;
-            margin: 32px auto 0 auto;
-            text-align: center;
-        ">
-            <div>
-                <div style="background: #F2F3F5; border-radius: 16px; width: 56px; height: 56px; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center;">
+        <div class="icon-grid">
+            <div class="icon-grid-item">
+                <div class="icon-bg">
                     <!-- Food & Drink Icon -->
                     <svg width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="16" cy="16" r="15" stroke="#007A33" stroke-width="2"/>
@@ -238,10 +324,10 @@ if page == "Dashboard":
                         <rect x="13" y="10" width="6" height="4" rx="2" fill="#007A33"/>
                     </svg>
                 </div>
-                <div style="font-size: 14px; color: #222; font-family: 'Inter', 'Roboto', sans-serif;">Food & Drink</div>
+                <div style="font-size: 14px; color: #222;">Food & Drink</div>
             </div>
-            <div>
-                <div style="background: #F2F3F5; border-radius: 16px; width: 56px; height: 56px; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center;">
+            <div class="icon-grid-item">
+                <div class="icon-bg">
                     <!-- Fuel Up Icon -->
                     <svg width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="8" y="8" width="16" height="16" rx="4" fill="#8DC63F" stroke="#007A33" stroke-width="2"/>
@@ -249,10 +335,10 @@ if page == "Dashboard":
                         <rect x="12" y="20" width="8" height="2" rx="1" fill="#007A33"/>
                     </svg>
                 </div>
-                <div style="font-size: 14px; color: #222; font-family: 'Inter', 'Roboto', sans-serif;">Fuel Up</div>
+                <div style="font-size: 14px; color: #222;">Fuel Up</div>
             </div>
-            <div>
-                <div style="background: #F2F3F5; border-radius: 16px; width: 56px; height: 56px; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center;">
+            <div class="icon-grid-item">
+                <div class="icon-bg">
                     <!-- Car Wash Icon -->
                     <svg width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <ellipse cx="16" cy="20" rx="8" ry="4" fill="#8DC63F"/>
@@ -260,10 +346,10 @@ if page == "Dashboard":
                         <circle cx="16" cy="12" r="2" fill="#fff"/>
                     </svg>
                 </div>
-                <div style="font-size: 14px; color: #222; font-family: 'Inter', 'Roboto', sans-serif;">Car Wash</div>
+                <div style="font-size: 14px; color: #222;">Car Wash</div>
             </div>
-            <div>
-                <div style="background: #F2F3F5; border-radius: 16px; width: 56px; height: 56px; margin: 0 auto 8px auto; display: flex; align-items: center; justify-content: center;">
+            <div class="icon-grid-item">
+                <div class="icon-bg">
                     <!-- Shop Offers Icon -->
                     <svg width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="8" y="10" width="16" height="12" rx="4" fill="#8DC63F" stroke="#007A33" stroke-width="2"/>
@@ -271,102 +357,74 @@ if page == "Dashboard":
                         <rect x="14" y="20" width="4" height="2" rx="1" fill="#007A33"/>
                     </svg>
                 </div>
-                <div style="font-size: 14px; color: #222; font-family: 'Inter', 'Roboto', sans-serif;">Shop Offers</div>
+                <div style="font-size: 14px; color: #222;">Shop Offers</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- Fixed Bottom Navigation Bar ---
-    st.markdown("""
-        <div class="bottom-nav">
-            <div class="nav-item">
-                <!-- Home Icon -->
-                <svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 12L14 4l10 8v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V12z" stroke="#007A33" stroke-width="2" fill="none"/>
-                    <rect x="10" y="16" width="8" height="6" rx="2" fill="#8DC63F"/>
-                </svg>
-                Home
-            </div>
-            <div class="nav-item">
-                <!-- Find Fuel Icon -->
-                <svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/>
-                    <path d="M14 8v6l4 4" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                Find Fuel
-            </div>
-            <div class="nav-item">
-                <!-- Rewards Icon -->
-                <svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/>
-                    <path d="M9 17l5-6 5 6" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                Rewards
-            </div>
-            <div class="nav-item">
-                <!-- Offers Icon -->
-                <svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="6" y="8" width="16" height="12" rx="4" fill="#8DC63F" stroke="#007A33" stroke-width="2"/>
-                    <circle cx="14" cy="14" r="3" fill="#007A33"/>
-                </svg>
-                Offers
-            </div>
-            <div class="nav-item">
-                <!-- Profile Icon -->
-                <svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="14" cy="11" r="5" stroke="#007A33" stroke-width="2"/>
-                    <rect x="7" y="18" width="14" height="6" rx="3" fill="#8DC63F"/>
-                </svg>
-                Profile
+    # --- Next Stop Feature ---
+    if db_status == "ok" and not df.empty:
+        latest_station = df.iloc[0]["station"]
+    else:
+        latest_station = "No recent station"
+    st.markdown(f"""
+        <div class="next-stop-card">
+            <div class="next-stop-title">Your Next Stop</div>
+            <div class="next-stop-station">{latest_station}</div>
+            <div class="next-stop-details">4.2 km away</div>
+            <div class="next-stop-fuel">
+                <span>Unleaded: <b>€1.72</b></span>
+                <span>Diesel: <b>€1.65</b></span>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-# --- Station Finder Page ---
-elif page == "Station Finder":
+elif st.session_state["current_page"] == "Fuel Tracker":
+    st.title("⛽ My Fuel Logs")
+
+    if st.button("Refresh Data"):
+        st.rerun()
+
+    df, db_status = get_fuel_logs()
+
+    if db_status == "missing":
+        st.warning("Please run tracker.py to initialize data.")
+    elif db_status == "empty":
+        st.warning("No fuel logs found. Please add data using tracker.py.")
+    elif db_status == "error":
+        st.error("Could not read tracker.db. Please check your database.")
+    else:
+        total_liters = df["liters"].sum()
+        total_spend = df["total_cost"].sum()
+        col1, col2 = st.columns(2)
+        col1.metric("Total Liters", f"{total_liters:.1f} L")
+        col2.metric("Total Spend (€)", f"€{total_spend:.2f}")
+        st.dataframe(df, width='stretch')
+
+elif st.session_state["current_page"] == "Station Finder":
     st.title("Find a Station")
-    city = st.text_input("Enter city name")
-    stations = {
-        "dublin": "123 Main St, Dublin",
-        "cork": "456 River Rd, Cork",
-        "galway": "789 Ocean Ave, Galway",
-        "limerick": "101 City Rd, Limerick",
-        "waterford": "202 Quay St, Waterford",
-        "kilkenny": "303 Castle Rd, Kilkenny",
-        "wexford": "404 Main St, Wexford",
-        "sligo": "505 Riverbank, Sligo",
-        "athlone": "606 Central Ave, Athlone",
-        "letterkenny": "707 Market Sq, Letterkenny",
-        "drogheda": "808 Bridge St, Drogheda",
-        "navan": "909 Abbey Rd, Navan",
-        "ennis": "111 Market St, Ennis",
-        "tralee": "222 Oakpark, Tralee",
-        "clonmel": "333 Suir Rd, Clonmel",
-        "carlow": "444 Tullow St, Carlow",
-        "naas": "555 Blessington Rd, Naas",
-        "newbridge": "666 Main St, Newbridge",
-        "portlaoise": "777 Ridge Rd, Portlaoise",
-        "mullingar": "888 Green Rd, Mullingar",
-        "castlebar": "999 Main St, Castlebar",
-        "thurles": "121 Liberty Sq, Thurles",
-        "cavan": "232 Farnham St, Cavan",
-        "roscommon": "343 Abbeytown, Roscommon",
-        "monaghan": "454 Broad Rd, Monaghan",
-        "tullamore": "565 High St, Tullamore",
-        "longford": "676 Main St, Longford",
-        "ballina": "787 Ridgepool Rd, Ballina",
-        "kells": "898 Headfort Rd, Kells",
-        "dunboyne": "909 Main St, Dunboyne"
-    }
-    if st.button("Find Station"):
-        address = stations.get(city.strip().lower())
-        if address:
-            st.success(f"Applegreen Station: {address}")
-        else:
-            st.error("No Applegreen station found in that city.")
+    city = st.text_input("Enter city or town name")
+    show_map = False
+    if city.strip():
+        show_map = True
 
-# --- Fuel Calculator Page ---
-elif page == "Fuel Calculator":
+    # Show contextual station image
+    st.markdown(
+        '<img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Applegreen_Service_Station_-_geograph.org.uk_-_1436421.jpg" class="station-hero" alt="Applegreen Forecourt">',
+        unsafe_allow_html=True
+    )
+
+    # Live Map Integration
+    if show_map:
+        map_url = f"https://maps.google.com/maps?q={city.strip().replace(' ', '%20')}+Applegreen&t=&z=13&ie=UTF8&iwloc=&output=embed"
+        st.iframe(
+            f'<iframe width="100%" height="340" style="border-radius:18px;border:none;" src="{map_url}"></iframe>',
+            height=360
+        )
+    else:
+        st.info("Type an Irish city or town name above to see Applegreen locations on the map.")
+
+elif st.session_state["current_page"] == "Fuel Calculator":
     st.title("Fuel Cost Calculator")
     litres = st.number_input("Litres", min_value=0.0, step=1.0)
     fuel_type = st.selectbox("Fuel Type", ["Petrol", "Diesel"])
