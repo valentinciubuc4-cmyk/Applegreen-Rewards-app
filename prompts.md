@@ -1,3 +1,28 @@
+# Applegreen Go – Developer Ledger
+
+## Lesson 3
+- Initial Streamlit prototype with static mockups and basic navigation.
+
+## Lesson 4
+- Added SQLite integration and dynamic dashboard metrics.
+- Implemented session state for user login and navigation.
+
+## Lesson 5
+- Migrated to live Google Maps iframe for station finder.
+- Introduced branded dashboard visuals and rewards logic.
+- Added session-driven login gate and sidebar logout.
+
+## Lesson 6
+- [Troubleshooting, Compliance]  
+  Removed all obsolete layout properties and unexpected keyword arguments from the codebase.  
+  Ensured `st.iframe` uses only supported parameters, and all images/dataframes use the new `width='stretch'` protocol for 2026 compliance.  
+  Eradicated the unexpected keyword parameter crash in the Station Finder map, restoring full application execution and navigation.
+- [State-Management, UI/UX, Hotfixes]  
+  Restored native Streamlit button navigation for the bottom navbar to preserve session state and prevent forced logouts.  
+  Applied strict CSS flexbox overrides to lock navigation into a single horizontal row, eliminating vertical stacking on mobile and desktop.
+- [UI/UX, Emoji, Accessibility]  
+  Replaced all SVG/HTML button labels with clean emoji text labels to guarantee perfect rendering and accessibility on all platforms.
+
 # Lesson 3: Prototype & Environment
 
 ## Design Concept
