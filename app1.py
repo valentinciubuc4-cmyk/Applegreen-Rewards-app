@@ -2,17 +2,111 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 import os
+from datetime import datetime, timedelta
 
-# --- Data Connection ---
-def get_fuel_logs(db_path="tracker.db"):
+# --- Session Page Initialization ---
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "Dashboard"
+
+# --- Session Login Gate ---
+if "logged_in_user" not in st.session_state:
+    st.session_state["logged_in_user"] = None
+
+def logout():
+    st.session_state["logged_in_user"] = None
+    st.session_state["current_page"] = "Dashboard"
+    st.rerun()
+
+def login_screen():
+    st.markdown(
+        """
+        <div style="display:flex;justify-content:center;align-items:center;height:70vh;">
+          <div style="background:#fff;border-radius:18px;box-shadow:0 4px 24px rgba(0,0,0,0.07);padding:40px 32px;max-width:340px;width:100%;text-align:center;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/6/63/Applegreen_Logo.png" width="90" style="margin-bottom:18px;">
+            <h2 style="color:#007A33;font-weight:800;margin-bottom:18px;">Welcome to Applegreen Go</h2>
+        """,
+        unsafe_allow_html=True
+    )
+    name = st.text_input("Enter your name:", key="login_name", max_chars=32)
+    login_btn = st.button("Get Started", type="primary")
+    st.markdown("</div></div>", unsafe_allow_html=True)
+    if login_btn and name.strip():
+        st.session_state["logged_in_user"] = name.strip()
+        st.rerun()
+    st.stop()
+
+if not st.session_state["logged_in_user"]:
+    login_screen()
+
+# --- Sidebar Logout ---
+with st.sidebar:
+    st.write(f"Logged in as: **{st.session_state['logged_in_user']}**")
+    if st.button("Logout"):
+        logout()
+
+# --- DB Connection, Migration, and Auto-Seed ---
+def init_db_and_get_logs(user):
+    db_path = "tracker.db"
+    table = "fuel_logs"
     if not os.path.exists(db_path):
-        return None, "missing"
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        c.execute(f"""
+            CREATE TABLE IF NOT EXISTS {table} (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT,
+                liters REAL,
+                price_per_liter REAL,
+                total_cost REAL,
+                station TEXT,
+                weather_info TEXT,
+                user_name TEXT DEFAULT 'Valentin'
+            )
+        """)
+        conn.commit()
+        conn.close()
     try:
         conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute(f"PRAGMA table_info({table})")
+        cols = [row[1] for row in cur.fetchall()]
+        if "user_name" not in cols:
+            try:
+                cur.execute(f"ALTER TABLE {table} ADD COLUMN user_name TEXT DEFAULT 'Valentin'")
+                conn.commit()
+            except Exception:
+                pass
         df = pd.read_sql_query(
-            "SELECT date, liters, price_per_liter, total_cost, station, weather_info FROM fuel_logs ORDER BY date DESC",
-            conn
+            f"SELECT date, liters, price_per_liter, total_cost, station, weather_info, user_name FROM {table} WHERE user_name = ? ORDER BY date DESC",
+            conn,
+            params=(user,)
         )
+        if df.empty:
+            today = datetime.now()
+            mock_entries = [
+                (
+                    (today - timedelta(days=2)).strftime("%Y-%m-%d"),
+                    45.5, 1.71, round(45.5 * 1.71, 2), "Dublin M1", "Sunny", user
+                ),
+                (
+                    (today - timedelta(days=8)).strftime("%Y-%m-%d"),
+                    38.0, 1.72, round(38.0 * 1.72, 2), "Galway Plaza", "Cloudy", user
+                ),
+                (
+                    (today - timedelta(days=15)).strftime("%Y-%m-%d"),
+                    42.1, 1.70, round(42.1 * 1.70, 2), "Enfield", "Rainy", user
+                ),
+            ]
+            cur.executemany(
+                f"INSERT INTO {table} (date, liters, price_per_liter, total_cost, station, weather_info, user_name) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                mock_entries
+            )
+            conn.commit()
+            df = pd.read_sql_query(
+                f"SELECT date, liters, price_per_liter, total_cost, station, weather_info, user_name FROM {table} WHERE user_name = ? ORDER BY date DESC",
+                conn,
+                params=(user,)
+            )
         conn.close()
         if df.empty:
             return None, "empty"
@@ -22,7 +116,7 @@ def get_fuel_logs(db_path="tracker.db"):
 
 st.set_page_config(page_title="Applegreen Go", page_icon="🍏", layout="centered")
 
-# --- CSS for mobile look and nav ---
+# --- App CSS (including mobile nav and flex row fix) ---
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
@@ -64,6 +158,17 @@ st.markdown("""
             font-size: 16px;
             font-weight: 600;
         }
+        .main-content-pad {
+            padding-bottom: 90px;
+        }
+        .station-hero {
+            width: 100%;
+            max-width: 700px;
+            border-radius: 24px;
+            margin: 18px auto 24px auto;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            display: block;
+        }
         .rewards-card {
             background: #fff;
             border-radius: 24px;
@@ -78,7 +183,6 @@ st.markdown("""
             width: 120px;
             height: 120px;
             border-radius: 50%;
-            background: conic-gradient(#007A33 calc(var(--progress)*1%), #8DC63F 0 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -167,60 +271,97 @@ st.markdown("""
         .next-stop-fuel span {
             margin-right: 18px;
         }
-        .stButton>button {
-            border-radius: 20px !important;
+        .empty-state-card {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+            padding: 48px 28px 36px 28px;
+            max-width: 420px;
+            margin: 48px auto 32px auto;
+            text-align: center;
         }
-        .bottom-nav {
+        .empty-state-card .icon {
+            margin-bottom: 18px;
+        }
+        .empty-state-title {
+            font-size: 21px;
+            font-weight: 700;
+            color: #007A33;
+            margin-bottom: 8px;
+        }
+        .empty-state-desc {
+            color: #444;
+            font-size: 15px;
+            margin-bottom: 18px;
+        }
+        .empty-state-script {
+            background: #F2F3F5;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #007A33;
+            padding: 8px 14px;
+            margin: 0 auto 0 auto;
+            display: inline-block;
+        }
+        /* --- Horizontal Row Dock Layout Fix for st.columns --- */
+        div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            gap: 6px !important;
+            width: 100% !important;
+        }
+        div[data-testid="stHorizontalBlock"] > div {
+            width: 25% !important;
+            min-width: 20% !important;
+            flex: 1 1 0% !important;
+        }
+        div[data-testid="stHorizontalBlock"] .stButton > button {
+            background-color: rgba(141, 198, 63, 0.15) !important;
+            color: #007A33 !important;
+            border: 1px solid rgba(141, 198, 63, 0.25) !important;
+            border-radius: 14px !important;
+            min-height: 54px !important;
+            width: 100% !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.15s ease-in-out !important;
+        }
+        div[data-testid="stHorizontalBlock"] .stButton > button:hover {
+            background-color: rgba(141, 198, 63, 0.30) !important;
+            transform: scale(0.96) !important;
+        }
+        .bottom-nav-wrapper {
             position: fixed;
             left: 0;
             right: 0;
             bottom: 0;
-            height: 68px;
-            background: #fff;
-            box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 100;
-        }
-        .nav-btn {
-            background: none;
-            border: none;
-            outline: none;
-            padding: 0;
-            margin: 0;
-            cursor: pointer;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .nav-btn.selected {
-            color: #007A33;
-        }
-        .nav-btn svg {
-            margin-bottom: 4px;
-        }
-        .station-hero {
             width: 100%;
-            max-width: 700px;
-            border-radius: 24px;
-            margin: 18px auto 24px auto;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-            display: block;
+            z-index: 99999;
+            background: #ffffff;
+            border-top: 1px solid rgba(0,0,0,0.08);
+            padding: 10px 12px 24px 12px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+        }
+        .stAppViewContainer, .main, .block-container {
+            padding-bottom: 140px !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# --- Header ---
-st.markdown("""
+# --- Personalized Header ---
+user = st.session_state["logged_in_user"]
+avatar_letter = user[0].upper() if user else "U"
+st.markdown(f"""
 <div class="header-container">
     <img src="https://upload.wikimedia.org/wikipedia/commons/6/63/Applegreen_Logo.png" class="header-logo" alt="Applegreen Logo">
     <div class="profile-section">
-        <span class="welcome-text">Welcome, Valentin</span>
-        <div class="profile-avatar">V</div>
+        <span class="welcome-text">Welcome, {user}</span>
+        <div class="profile-avatar">{avatar_letter}</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -246,38 +387,20 @@ if selected_page != st.session_state["current_page"]:
     st.session_state["current_page"] = selected_page
     st.rerun()
 
-# --- Bottom Navigation Bar (fully functional) ---
-nav_cols = st.columns(4)
-nav_icons = [
-    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 12L14 4l10 8v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V12z" stroke="#007A33" stroke-width="2" fill="none"/><rect x="10" y="16" width="8" height="6" rx="2" fill="#8DC63F"/></svg>""",
-    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/><path d="M14 8v6l4 4" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>""",
-    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="10" stroke="#007A33" stroke-width="2"/><path d="M9 17l5-6 5 6" stroke="#8DC63F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>""",
-    """<svg width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="11" r="5" stroke="#007A33" stroke-width="2"/><rect x="7" y="18" width="14" height="6" rx="3" fill="#8DC63F"/></svg>"""
-]
-for i, (col, nav, icon) in enumerate(zip(nav_cols, nav_order, nav_icons)):
-    selected = (st.session_state["current_page"] == nav_map[nav])
-    btn_label = f"{icon}<div style='font-size:12px;'>{nav}</div>"
-    if col.button("", key=f"navbtn_{nav}", help=nav, use_container_width=True):
-        st.session_state["current_page"] = nav_map[nav]
-        st.rerun()
-    col.markdown(
-        f"<div class='nav-btn{' selected' if selected else ''}'>{btn_label}</div>",
-        unsafe_allow_html=True
-    )
+# --- Main Content Padding ---
+st.markdown('<div class="main-content-pad">', unsafe_allow_html=True)
 
 # --- Main Page Routing ---
-df, db_status = get_fuel_logs()
+df, db_status = init_db_and_get_logs(user)
+page = st.session_state["current_page"]
 
-if st.session_state["current_page"] == "Dashboard":
+if page == "Dashboard":
     st.title("Applegreen Go")
-
-    # --- Hero Image ---
-    st.markdown(
-        '<img src="https://applegreenstores.com/wp-content/uploads/2019/04/fuelgood-home-tile.jpg" class="station-hero" alt="Applegreen Storefront">',
-        unsafe_allow_html=True
+    st.image(
+        "https://applegreenstores.com/wp-content/uploads/2019/04/fuelgood-home-tile.jpg",
+        caption=None,
+        width='stretch'
     )
-
-    # --- Rewards Section ---
     if db_status == "ok":
         total_liters = df["liters"].sum()
         points = int(total_liters * 10)
@@ -285,68 +408,36 @@ if st.session_state["current_page"] == "Dashboard":
     else:
         points = 0
         progress = 0
-
+    deg = int((progress / 100) * 360)
     st.markdown(f"""
         <div class="rewards-card">
             <div class="rewards-label">My Rewards</div>
-            <div class="circular-progress" style="--progress:{progress};">
+            <div class="circular-progress" style="background:conic-gradient(#007A33 {deg}deg, #8DC63F {deg}deg 360deg);">
                 <div class="circular-progress-inner">{points}</div>
             </div>
             <div class="rewards-progress">{int(progress)}% to next €5 reward</div>
         </div>
     """, unsafe_allow_html=True)
-
-    # --- Action Grid ---
     st.markdown("""
         <div class="icon-grid">
             <div class="icon-grid-item">
-                <div class="icon-bg">
-                    <!-- Food & Drink Icon -->
-                    <svg width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="16" cy="16" r="15" stroke="#007A33" stroke-width="2"/>
-                        <rect x="10" y="14" width="12" height="8" rx="3" fill="#8DC63F"/>
-                        <rect x="13" y="10" width="6" height="4" rx="2" fill="#007A33"/>
-                    </svg>
-                </div>
+                <div class="icon-bg">🍔</div>
                 <div style="font-size: 14px; color: #222;">Food & Drink</div>
             </div>
             <div class="icon-grid-item">
-                <div class="icon-bg">
-                    <!-- Fuel Up Icon -->
-                    <svg width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="8" y="8" width="16" height="16" rx="4" fill="#8DC63F" stroke="#007A33" stroke-width="2"/>
-                        <rect x="14" y="12" width="4" height="8" rx="2" fill="#007A33"/>
-                        <rect x="12" y="20" width="8" height="2" rx="1" fill="#007A33"/>
-                    </svg>
-                </div>
+                <div class="icon-bg">⛽</div>
                 <div style="font-size: 14px; color: #222;">Fuel Up</div>
             </div>
             <div class="icon-grid-item">
-                <div class="icon-bg">
-                    <!-- Car Wash Icon -->
-                    <svg width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <ellipse cx="16" cy="20" rx="8" ry="4" fill="#8DC63F"/>
-                        <rect x="10" y="8" width="12" height="8" rx="4" fill="#007A33"/>
-                        <circle cx="16" cy="12" r="2" fill="#fff"/>
-                    </svg>
-                </div>
+                <div class="icon-bg">🚗</div>
                 <div style="font-size: 14px; color: #222;">Car Wash</div>
             </div>
             <div class="icon-grid-item">
-                <div class="icon-bg">
-                    <!-- Shop Offers Icon -->
-                    <svg width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="8" y="10" width="16" height="12" rx="4" fill="#8DC63F" stroke="#007A33" stroke-width="2"/>
-                        <circle cx="16" cy="16" r="3" fill="#007A33"/>
-                        <rect x="14" y="20" width="4" height="2" rx="1" fill="#007A33"/>
-                    </svg>
-                </div>
+                <div class="icon-bg">🛒</div>
                 <div style="font-size: 14px; color: #222;">Shop Offers</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
-
-    # --- Next Stop Feature ---
     if db_status == "ok" and not df.empty:
         latest_station = df.iloc[0]["station"]
     else:
@@ -363,18 +454,27 @@ if st.session_state["current_page"] == "Dashboard":
         </div>
     """, unsafe_allow_html=True)
 
-elif st.session_state["current_page"] == "Fuel Tracker":
+elif page == "Fuel Tracker":
     st.title("⛽ My Fuel Logs")
-
-    if st.button("Refresh Data"):
-        st.rerun()
-
-    df, db_status = get_fuel_logs()
-
+    df, db_status = init_db_and_get_logs(user)
     if db_status == "missing":
-        st.warning("Please run tracker.py to initialize data.")
+        st.markdown("""
+            <div class="empty-state-card">
+                <div class="icon">⛽</div>
+                <div class="empty-state-title">No Database Found</div>
+                <div class="empty-state-desc">Please run the developer script below to initialize your fuel log database.</div>
+                <div class="empty-state-script">python tracker.py</div>
+            </div>
+        """, unsafe_allow_html=True)
     elif db_status == "empty":
-        st.warning("No fuel logs found. Please add data using tracker.py.")
+        st.markdown("""
+            <div class="empty-state-card">
+                <div class="icon">⛽</div>
+                <div class="empty-state-title">No Fuel Logs Yet</div>
+                <div class="empty-state-desc">Your fuel log is empty. Add records using the developer script, then refresh your dashboard.</div>
+                <div class="empty-state-script">python tracker.py</div>
+            </div>
+        """, unsafe_allow_html=True)
     elif db_status == "error":
         st.error("Could not read tracker.db. Please check your database.")
     else:
@@ -385,30 +485,25 @@ elif st.session_state["current_page"] == "Fuel Tracker":
         col2.metric("Total Spend (€)", f"€{total_spend:.2f}")
         st.dataframe(df, width='stretch')
 
-elif st.session_state["current_page"] == "Station Finder":
+elif page == "Station Finder":
     st.title("Find a Station")
     city = st.text_input("Enter city or town name")
     show_map = False
     if city.strip():
         show_map = True
-
-    # Show contextual station image
-    st.markdown(
-        '<img src="https://applegreenstores.com/wp-content/uploads/2018/06/about-hero.jpg" class="station-hero" alt="Applegreen Forecourt">',
-        unsafe_allow_html=True
+    st.image(
+        "https://applegreenstores.com/wp-content/uploads/2018/06/about-hero.jpg",
+        caption=None,
+        width='stretch'
     )
-
-    # Live Map Integration
     if show_map:
         map_url = f"https://maps.google.com/maps?q={city.strip().replace(' ', '%20')}+Applegreen&t=&z=13&ie=UTF8&iwloc=&output=embed"
-        st.iframe(
-            f'<iframe width="100%" height="340" style="border-radius:18px;border:none;" src="{map_url}"></iframe>',
-            height=360
-        )
+        # ✅ FIX: Removed 'use_container_width=True' argument to clear the TypeError crash
+        st.iframe(src=map_url, height=360)
     else:
         st.info("Type an Irish city or town name above to see Applegreen locations on the map.")
 
-elif st.session_state["current_page"] == "Fuel Calculator":
+elif page == "Fuel Calculator":
     st.title("Fuel Cost Calculator")
     litres = st.number_input("Litres", min_value=0.0, step=1.0)
     fuel_type = st.selectbox("Fuel Type", ["Petrol", "Diesel"])
@@ -420,4 +515,25 @@ elif st.session_state["current_page"] == "Fuel Calculator":
         else:
             st.error("Please enter a positive number of litres.")
 
+st.markdown("</div>", unsafe_allow_html=True)
 
+# --- Native Streamlit Button Bottom Navbar (locked horizontal row) ---
+st.markdown('<div class="bottom-nav-wrapper">', unsafe_allow_html=True)
+nav_cols = st.columns(4)
+with nav_cols[0]:
+    if st.button("🏠 Home", key="nav_home"):
+        st.session_state["current_page"] = "Dashboard"
+        st.rerun()
+with nav_cols[1]:
+    if st.button("📍 Map", key="nav_map"):
+        st.session_state["current_page"] = "Station Finder"
+        st.rerun()
+with nav_cols[2]:
+    if st.button("⛽ Logs", key="nav_logs"):
+        st.session_state["current_page"] = "Fuel Tracker"
+        st.rerun()
+with nav_cols[3]:
+    if st.button("🧮 Calc", key="nav_calc"):
+        st.session_state["current_page"] = "Fuel Calculator"
+        st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
