@@ -521,7 +521,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 st.markdown('<div class="bottom-nav-wrapper">', unsafe_allow_html=True)
 nav_cols = st.columns(4)
 with nav_cols[0]:
-    if st.button("🏠 Home", key="nav_home"):
+    if st.button(<i class="bi bi-house"></i> "Home", key="nav_home"):
         st.session_state["current_page"] = "Dashboard"
         st.rerun()
 with nav_cols[1]:
