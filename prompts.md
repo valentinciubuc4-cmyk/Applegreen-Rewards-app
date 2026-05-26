@@ -1,72 +1,51 @@
-# Applegreen Go – Developer Ledger
+# Applegreen Go – Developer Ledger & Architectural Design
 
-## Lesson 3
-- Initial Streamlit prototype with static mockups and basic navigation.
+## Architectural Overview
 
-## Lesson 4
-- Added SQLite integration and dynamic dashboard metrics.
-- Implemented session state for user login and navigation.
-
-## Lesson 5
-- Migrated to live Google Maps iframe for station finder.
-- Introduced branded dashboard visuals and rewards logic.
-- Added session-driven login gate and sidebar logout.
-
-## Lesson 6
-- [Troubleshooting, Compliance]  
-  Removed all obsolete layout properties and unexpected keyword arguments from the codebase.  
-  Ensured `st.iframe` uses only supported parameters, and all images/dataframes use the new `width='stretch'` protocol for 2026 compliance.  
-  Eradicated the unexpected keyword parameter crash in the Station Finder map, restoring full application execution and navigation.
-- [State-Management, UI/UX, Hotfixes]  
-  Restored native Streamlit button navigation for the bottom navbar to preserve session state and prevent forced logouts.  
-  Applied strict CSS flexbox overrides to lock navigation into a single horizontal row, eliminating vertical stacking on mobile and desktop.
-- [UI/UX, Emoji, Accessibility]  
-  Replaced all SVG/HTML button labels with clean emoji text labels to guarantee perfect rendering and accessibility on all platforms.
-
-# Lesson 3: Prototype & Environment
-
-## Design Concept
-### Prompt 1 [UI/UX]
-- Describe the desired Applegreen UI with a clean white background, emerald green and lime green palette, and a gradient loyalty card.
-
-**Result:** The AI generated XAML and Streamlit/CSS code samples using the specified colors, gradients, and layout for a modern, branded look.
-
-## Technology Pivot
-### Prompt 2 [State-Management]
-- Move from a simple console-based Python script to a visual, interactive Streamlit "Page App" with multiple pages.
-
-**Result:** The AI provided a Streamlit app template with Dashboard, Station Finder, and Fuel Calculator pages, using session state and custom navigation.
-
-## Environment Fix
-### Prompt 3 [Troubleshooting]
-- Troubleshoot and resolve the "zsh: command not found: pip" error on my MacBook Pro to enable Python package installation.
-
-**Result:** The AI gave Mac-specific terminal commands to install pip and ensure the Python environment was correctly set up.
-
-## Refinement
-### Prompt 4 [UI/UX]
-- Request custom CSS injection to match the Applegreen design as shown in image.jpg, including button styles and font choices.
-
-**Result:** The AI supplied CSS snippets for Streamlit to style buttons, fonts, and layout, achieving a closer visual match to the brand.
+This Streamlit application (`app1.py`) is architected as a **self-contained, high-fidelity vertical slice** for safe, network-independent demonstration and presentation.  
+**No live or cloud-hosted production server is required or used.**  
+Instead, all telemetry, health checks, and operational events are simulated directly within the Python runtime.
 
 ---
 
-# Lesson 6: Mapping & Visual Upgrades
+## Telemetry Simulation Engine
 
-## Live Map Integration
-### Prompt 5 [API-Integration, Embeds]
-- Replace static station lookup with a live, embedded Google Maps iframe that dynamically queries for Applegreen locations based on user input.
-
-**Result:** The Station Finder page now renders a real-time map for any Irish city or town, providing instant, interactive geographic context for users.
-
-## Real Station Imagery
-### Prompt 6 [UI/UX, Media-Management]
-- Swap out placeholder text and static icons for real, web-hosted Applegreen forecourt images in dashboard and station views.
-
-**Result:** The app now loads and displays authentic station photos, enhancing realism and user trust.
+- **Embedded Python Simulation:**  
+  The app includes a built-in telemetry simulation engine that mimics real-world site monitoring and operational health checks.
+- **Simulated JSON Payloads:**  
+  The engine generates simulated JSON telemetry data for 120+ sites, each representing a retail location or system endpoint.
+- **Randomized Glitch Injection:**  
+  At random intervals, the simulation triggers operational glitches such as POS (Aloha/NCR) failures, payment gateway (Payzone) outages, or SMS back-office issues.
+- **Internal Clock & Event Timeline:**  
+  The simulation tracks an internal clock, logging events with timestamps (e.g., "60s: Anomaly detected on POS terminal").
+- **Self-Healing Automation:**  
+  When a failure is detected, a 90-second self-healing countdown is initiated, mimicking the execution of an Ansible runbook.  
+  After the countdown, the affected system is automatically restored to a healthy (green) status, and a recovery log is generated (e.g., "90s: Ansible runbook successful. System restored.").
+- **Live Log Streaming:**  
+  All events and status changes are streamed live to the user interface, providing real-time feedback and transparency.
 
 ---
 
-# Summary
+## Requirements & Presentation Mode
 
-This log demonstrates a progression from static UI concepts to a fully interactive, data-driven, and visually authentic prototype, with each iteration
+- **No External Dependencies:**  
+  The simulation does not require any external network connections, APIs, or cloud services. All logic and data are generated locally.
+- **Safe for Demo & Training:**  
+  The design ensures that the app can be safely run in classrooms, demo environments, or offline presentations without risk or dependency on production infrastructure.
+- **Vertical Slice Fidelity:**  
+  The simulation engine, UI, and navigation together provide a realistic, end-to-end demonstration of operational monitoring, anomaly detection, and automated remediation as would be seen in a full-scale production deployment.
+
+---
+
+## Key Features
+
+- **Session-safe navigation and login**
+- **Automated data seeding for user dashboards**
+- **Mobile-optimized, flexbox-anchored navigation bar**
+- **Vision AI Live Logs with real-time anomaly and recovery events**
+- **Dynamic error injection and self-healing for critical systems**
+- **2026-compliant Streamlit layout and element usage**
+
+---
+
+This architecture enables rapid, reliable, and visually rich demonstration of Applegreen Go's operational monitoring and self-healing capabilities—entirely within a single
