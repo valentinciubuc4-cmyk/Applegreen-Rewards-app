@@ -1,33 +1,42 @@
-# Applegreen Go – Final Prototype Critique
+# Applegreen Go – Technical Critique
 
-## Strengths
+## Current Limitations
 
-- **Crash-Free Navigation:**  
-  By removing the unsupported `use_container_width` and width parameters from the native `st.iframe` module, the application now compiles and runs flawlessly. This hotfix restored access to all navigation routes and eliminated fatal runtime errors.
+- **No Live Vision AI or Ansible Integration:**  
+  The Vision AI anomaly detection and automated Ansible remediation are simulated in Python only. There is no actual AI model inference, no real-time computer vision, and no execution of infrastructure automation scripts.
+- **Local State and Mock Payloads:**  
+  All telemetry, health checks, and system events are generated locally within the Streamlit runtime. The app does not connect to any live network, ingest real telemetry, or interact with production infrastructure.
+- **No Persistent or Distributed Data:**  
+  User sessions, logs, and system states exist only in local memory or SQLite. There is no persistent, multi-user, or distributed data storage.
 
-- **Session-Safe Navigation:**  
-  The bottom navigation bar uses native Streamlit buttons, which fully preserve session state and keep users logged in across all navigation actions. This eliminates the previous session wipe and forced logout bug caused by HTML link navigation.
+## Evaluation
 
-- **Bulletproof Horizontal Flexbox Layout:**  
-  Aggressive CSS flexbox overrides ensure the navigation bar always displays as a single horizontal row, never stacking vertically, regardless of device or viewport size. This delivers a true mobile-app experience and meets modern UI/UX standards.
+- **Deliberate Simulation for Presentation Reliability:**  
+  The choice to embed all telemetry simulation and state routing within the Streamlit app was intentional. This approach guarantees a robust, network-independent demonstration, eliminating the risk of live network failures, API downtime, or infrastructure outages during critical presentations.
+- **High-Fidelity UI/UX and Log Streaming:**  
+  The frontend delivers a polished, mobile-optimized experience with real-time, visually rich telemetry logs. The simulation engine provides a convincing operational narrative, including anomaly detection, self-healing countdowns, and recovery logs, all without external dependencies.
 
-- **Clean Emoji-Only Button Labels:**  
-  All navigation buttons use emoji text labels, eliminating SVG/HTML leaks and ensuring perfect rendering on all platforms.
+## Future Production Roadmap
 
-- **Automated Data Seeding:**  
-  New users are automatically seeded with realistic fuel logs, ensuring the dashboard and logs always display meaningful data without manual developer intervention.
+To evolve this prototype into a true production system, the following engineering steps are required:
 
-- **2026 Layout Compliance:**  
-  All images and dataframes use the new `width='stretch'` parameter, and the Station Finder map uses the modern `st.iframe(src=..., height=...)` call, ensuring compatibility with the latest Streamlit and Python 3.14 standards.
-
-## Limitations
-
-- **Local Database Scope:**  
-  The app remains tied to a local SQLite file, restricting it to single-user or demo scenarios. For production, a cloud-hosted, multi-user database would be required.
-
-- **No Persistent User Profiles:**  
-  User sessions are not persistent across browser restarts; authentication is session-based only.
+1. **Backend Migration:**  
+   - Replace the embedded simulation engine with a live FastAPI backend.
+   - Store and serve telemetry, logs, and system state from a PostgreSQL database.
+2. **Persistent Cloud Hosting:**  
+   - Deploy the backend and database to a secure, scalable cloud environment (e.g., Azure, AWS, GCP).
+   - Host the Streamlit frontend as a managed web service.
+3. **API Authentication and Security:**  
+   - Implement OAuth2 or API key authentication for all backend endpoints.
+   - Enforce role-based access controls for sensitive operations.
+4. **Real Telemetry Ingestion:**  
+   - Build ingestion pipelines to collect live telemetry from Applegreen’s physical sites, POS systems, payment gateways, and back-office infrastructure.
+   - Integrate with real Vision AI models for anomaly detection and trigger actual Ansible playbooks for automated remediation.
+5. **Distributed State and Multi-User Support:**  
+   - Enable persistent user sessions, distributed logging, and multi-user dashboards.
+   - Ensure all operational events and logs are stored and queryable for audit and analytics.
 
 ---
 
-This final version demonstrates a stable, branded, and mobile-optimized dashboard. The restoration of native Streamlit navigation, emoji-only button labels, and strict flexbox CSS ensures a seamless, professional user experience across all platforms.
+**Summary:**  
+This build is a robust, presentation-grade simulation, engineered for reliability and visual clarity. Transitioning to production will require significant backend, security, and integration work to deliver true live monitoring and automated remediation
