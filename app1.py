@@ -3,6 +3,8 @@ import sqlite3
 import pandas as pd
 import os
 from datetime import datetime, timedelta
+import random
+import time
 
 # --- Session Page Initialization ---
 if "current_page" not in st.session_state:
@@ -537,3 +539,117 @@ with nav_cols[3]:
         st.session_state["current_page"] = "Fuel Calculator"
         st.rerun()
 st.markdown('</div>', unsafe_allow_html=True)
+
+# --- Vision AI System Health Check (with live logs) ---
+def simulate_vision_ai(log_callback=None):
+    import streamlit as st
+
+    systems = [
+        {"name": "Aloha/NCR POS", "key": "aloha"},
+        {"name": "Payzone Gateway", "key": "payzone"},
+        {"name": "SMS Back-Office", "key": "sms"}
+    ]
+    status_colors = {
+        "Healthy": "🟢",
+        "Warning": "🟠",
+        "Down": "🔴",
+        "Failed": "🔴"
+    }
+
+    st.header("Vision AI System Health Check")
+    status_placeholder = {}
+    for sys in systems:
+        status_placeholder[sys["key"]] = st.empty()
+
+    # Randomly determine if a system fails (10% chance per system)
+    results = {}
+    for sys in systems:
+        fail_chance = random.random()
+        if fail_chance < 0.1:
+            # For Payzone, use 'Failed' to trigger downstream logic
+            if sys["key"] == "payzone":
+                results[sys["key"]] = "Failed"
+            else:
+                results[sys["key"]] = "Down"
+        elif fail_chance < 0.2:
+            results[sys["key"]] = "Warning"
+        else:
+            results[sys["key"]] = "Healthy"
+
+    # Store Payzone status in session state for downstream use
+    st.session_state["payzone_status"] = results.get("payzone", "Healthy")
+
+    # Show initial status
+    for sys in systems:
+        status = results[sys["key"]]
+        color = status_colors[status]
+        status_placeholder[sys["key"]].markdown(
+            f"**{sys['name']}**: {color} {status}"
+        )
+
+    # Live log area
+    if log_callback:
+        log_callback("0s: Vision AI scan started.")
+
+    # If any system is not healthy, simulate self-healing
+    if any(status not in ["Healthy"] for status in results.values()):
+        if log_callback and results.get("payzone") == "Failed":
+            log_callback("60s: Anomaly detected on Payzone Gateway.")
+        elif log_callback:
+            log_callback("60s: Anomaly detected on POS terminal.")
+        st.info("Running Ansible self-healing playbook...")
+        time.sleep(2)
+        if log_callback:
+            log_callback("90s: Ansible runbook successful. System restored.")
+        # After healing, set all to healthy
+        for sys in systems:
+            status_placeholder[sys["key"]].markdown(
+                f"**{sys['name']}**: {status_colors['Healthy']} Healthy"
+            )
+        st.success("All systems self-healed and healthy!")
+        if log_callback:
+            log_callback("92s: All systems healthy.")
+        # Reset Payzone status after healing
+        st.session_state["payzone_status"] = "Healthy"
+    else:
+        st.success("All systems are healthy.")
+        if log_callback:
+            log_callback("5s: All systems healthy.")
+        st.session_state["payzone_status"] = "Healthy"
+
+# --- Vision AI Live Logs integration ---
+if "vision_ai_logs" not in st.session_state:
+    st.session_state["vision_ai_logs"] = []
+
+def add_vision_log(msg):
+    st.session_state["vision_ai_logs"].append(msg)
+    # Keep only the last 10 logs
+    st.session_state["vision_ai_logs"] = st.session_state["vision_ai_logs"][-10:]
+
+# --- Sidebar toggle or tab for Vision AI ---
+with st.sidebar:
+    vision_ai_live = st.checkbox("Vision AI Live Logs")
+    if vision_ai_live:
+        st.session_state["show_vision_ai"] = True
+    else:
+        st.session_state["show_vision_ai"] = False
+
+if st.session_state.get("show_vision_ai", False):
+    st.markdown("## Vision AI Live Logs")
+    log_box = st.empty()
+    st.session_state["vision_ai_logs"] = []  # Clear logs on each run
+    simulate_vision_ai(log_callback=add_vision_log)
+    # Display logs in real time
+    for log in st.session_state["vision_ai_logs"]:
+        log_box.write(log)
+
+# --- Fuel Tracker and Station Finder error injection ---
+# In Fuel Tracker page, after st.title("⛽ My Fuel Logs") and before any submission button:
+if st.session_state["current_page"] == "Fuel Tracker":
+    if st.session_state.get("payzone_status", "Healthy") == "Failed":
+        st.error("Service temporarily degraded - System self-healing in progress")
+
+# In Station Finder page, after st.title("Find a Station") and before map helper:
+if st.session_state["current_page"] == "Station Finder":
+    if st.session_state.get("payzone_status", "Healthy") == "Failed":
+        st.error("Service temporarily degraded - System self-healing in progress")
